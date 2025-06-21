@@ -262,6 +262,33 @@ def get_project(project_id):
         'alternatives': alternatives
     }), 200
 
+@app.route('/api/projects/<int:project_id>', methods=['PUT'])
+@jwt_required()
+def update_project(project_id):
+    user_id = get_jwt_identity()
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    data = request.get_json()
+    name = data.get('name')
+    
+    if not name or not name.strip():
+        return jsonify({'error': 'Project name is required'}), 400
+    
+    # Update project name and last modified timestamp
+    project.name = name.strip()
+    project.last_modified = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({
+        'id': project.id,
+        'name': project.name,
+        'creation_date': project.creation_date.isoformat(),
+        'last_modified': project.last_modified.isoformat()
+    }), 200
+
 @app.route('/api/projects/<int:project_id>', methods=['DELETE'])
 @jwt_required()
 def delete_project(project_id):
