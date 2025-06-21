@@ -262,6 +262,21 @@ def get_project(project_id):
         'alternatives': alternatives
     }), 200
 
+@app.route('/api/projects/<int:project_id>', methods=['DELETE'])
+@jwt_required()
+def delete_project(project_id):
+    user_id = get_jwt_identity()
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    # Delete the project (cascade will handle related records)
+    db.session.delete(project)
+    db.session.commit()
+    
+    return jsonify({'message': 'Project deleted successfully'}), 200
+
 @app.route('/api/projects/<int:project_id>/criteria', methods=['POST'])
 @jwt_required()
 def add_criterion(project_id):
