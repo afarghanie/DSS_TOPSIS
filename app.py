@@ -311,6 +311,42 @@ def add_criterion(project_id):
         'weight': criterion.weight
     }), 201
 
+@app.route('/api/projects/<int:project_id>/criteria/<int:criterion_id>', methods=['PUT'])
+@jwt_required()
+def update_criterion(project_id, criterion_id):
+    user_id = get_jwt_identity()
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    criterion = Criterion.query.filter_by(id=criterion_id, project_id=project_id).first()
+    
+    if not criterion:
+        return jsonify({'error': 'Criterion not found'}), 404
+    
+    data = request.get_json()
+    name = data.get('name')
+    criterion_type = data.get('criterion_type')
+    weight = data.get('weight')
+    
+    if not all([name, criterion_type, weight is not None]):
+        return jsonify({'error': 'Name, criterion_type, and weight are required'}), 400
+    
+    # Update criterion
+    criterion.name = name
+    criterion.criterion_type = criterion_type
+    criterion.weight = weight
+    project.last_modified = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({
+        'id': criterion.id,
+        'name': criterion.name,
+        'criterion_type': criterion.criterion_type,
+        'weight': criterion.weight
+    }), 200
+
 @app.route('/api/projects/<int:project_id>/criteria/<int:criterion_id>', methods=['DELETE'])
 @jwt_required()
 def delete_criterion(project_id, criterion_id):
@@ -369,6 +405,50 @@ def add_alternative(project_id):
         'name': alternative.name,
         'values': values
     }), 201
+
+@app.route('/api/projects/<int:project_id>/alternatives/<int:alternative_id>', methods=['PUT'])
+@jwt_required()
+def update_alternative(project_id, alternative_id):
+    user_id = get_jwt_identity()
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    alternative = Alternative.query.filter_by(id=alternative_id, project_id=project_id).first()
+    
+    if not alternative:
+        return jsonify({'error': 'Alternative not found'}), 404
+    
+    data = request.get_json()
+    name = data.get('name')
+    values = data.get('values', [])
+    
+    if not name:
+        return jsonify({'error': 'Alternative name is required'}), 400
+    
+    # Update alternative name
+    alternative.name = name
+    
+    # Update values - delete existing ones and add new ones
+    AlternativeCriterionValue.query.filter_by(alternative_id=alternative_id).delete()
+    
+    for value_data in values:
+        value = AlternativeCriterionValue(
+            alternative_id=alternative.id,
+            criterion_id=value_data['criterion_id'],
+            value=value_data['value']
+        )
+        db.session.add(value)
+    
+    project.last_modified = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({
+        'id': alternative.id,
+        'name': alternative.name,
+        'values': values
+    }), 200
 
 @app.route('/api/projects/<int:project_id>/alternatives/<int:alternative_id>', methods=['DELETE'])
 @jwt_required()
