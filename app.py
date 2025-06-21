@@ -491,6 +491,44 @@ def get_current_user():
         'theme_preference': user.theme_preference
     }), 200
 
+@app.route('/api/projects/<int:project_id>/criteria/<int:criterion_id>', methods=['DELETE'])
+@jwt_required()
+def delete_criterion(project_id, criterion_id):
+    user_id = get_jwt_identity()
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    criterion = Criterion.query.filter_by(id=criterion_id, project_id=project_id).first()
+    if not criterion:
+        return jsonify({'error': 'Criterion not found'}), 404
+    
+    db.session.delete(criterion)
+    project.last_modified = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({'message': 'Criterion deleted successfully'}), 200
+
+@app.route('/api/projects/<int:project_id>/alternatives/<int:alternative_id>', methods=['DELETE'])
+@jwt_required()
+def delete_alternative(project_id, alternative_id):
+    user_id = get_jwt_identity()
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    alternative = Alternative.query.filter_by(id=alternative_id, project_id=project_id).first()
+    if not alternative:
+        return jsonify({'error': 'Alternative not found'}), 404
+    
+    db.session.delete(alternative)
+    project.last_modified = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({'message': 'Alternative deleted successfully'}), 200
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
