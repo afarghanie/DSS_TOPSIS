@@ -554,10 +554,10 @@ def upload_csv():
         # Read CSV file
         df = pd.read_csv(file)
         
-        # Return preview data
+        # Return preview data (now returning all data)
         return jsonify({
             'columns': df.columns.tolist(),
-            'preview': df.head(10).to_dict('records'),
+            'preview': df.to_dict('records'),
             'total_rows': len(df)
         }), 200
     except Exception as e:
